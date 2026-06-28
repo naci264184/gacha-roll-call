@@ -1,3 +1,4 @@
+#include <windows.h>
 #include<iostream>
 using namespace std;
 #include<easyx.h>
@@ -6,44 +7,55 @@ using namespace std;
 #include <mmsystem.h>
 #include<dsound.h>
 #pragma comment(lib, "WINMM.LIB")
+#include <random>
+#include <filesystem>
 
-//º¯ÊıµÄÉùÃ÷
+//¾É_·½·¨£¨¿ÉÄÜ»áÓĞµã»ìÂÒ£©
 void bf_ckdh();
-string szzzf(int num);
-int zfzsz(string& str, int len);
-void gxlj2(string& lj, int& num);
-bool pdlj(string& lj);
+wstring szzzf(int num);
+int zfzsz(wstring& str, int len);
+void gxlj2(wstring& lj, int& num);
+bool pdlj(wstring& lj);
 void csh_ckmb();								//³õÊ¼»¯³é¿¨Ä¿±ê
-int sc_sjs(int zsl);							//Éú³ÉËæ»úÊı£¬²ÎÊı£º×ÜÊıÁ¿£¬·µ»ØÖµ£ºËæ»ú½á¹û£¬×¢Òâ£ºÊıÖµ·¶Î§×î¶à3Î»Êı£¨0~999£©
 void scjg(int jg_s);							//Éú³É½á¹û
 void szztys();									//ÉèÖÃ×ÖÌåÑùÊ½
 
-void bf_ckjmy();								//²¥·Å³é¿¨½çÃæÒô
-void bf_cky();									//²¥·Å³é¿¨Òô
-void bf_csxy();									//²¥·Å³öÈıĞÇÒô
-void bf_cwxy();									//²¥·Å³öÎåĞÇÒô
+//»ù´¡_·½·¨
+int GetRandomNumber(int min, int max);				//²ÎÊı£º×îĞ¡Öµ, ×î´óÖµ
+bool jc_wjsfcz();									//¼ì²â_ÎÄ¼şÊÇ·ñ´æÔÚ
+wstring utf8_to_wstring(const std::string& str);	//½«GBK±àÂë×Ö·û´®£¬×ªÎªUTF-8±àÂë×Ö·û´®£¬²ÎÊı£ºGBK±àÂë×Ö·û´®£¬·µ»ØÖµ£ºUTF-8±àÂë×Ö·û´®
 
-//Â·¾¶
-string ckdh_lj = "gacha-anim//ckdh1.png";
-string jmdh_lj = "ui-anim//jmdh1.png";
-string ckmb_lj = "data.txt";
-string wzbj_lj = "images.png";
+//ÒôÆµ_·½·¨
+void Play_audio(const wstring& file_path, const wstring& alias);
+void Turn_off_audio(const wstring& alias);
 
-string ckdh_temp_lj = "gacha-anim//ckdh1.png";
 
-/*/¾ÉÂ·¾¶
-string ckdh_lj = "³é¿¨¶¯»­//ckdh1.png";
-string jmdh_lj = "½çÃæ¶¯»­//jmdh1.png";
-string ckmb_lj = "³é¿¨Ä¿±ê.txt";
-string wzbj_lj = "ÎÄ×Ö±³¾°.png";
-//*/
+//Í¼Æ¬Â·¾¶
+wstring ckdh_lj = L"gacha-anim/ckdh1.png";
+wstring jmdh_lj = L"ui-anim/jmdh1.png";
+wstring wzbj_lj = L"assets/images.png";
+
+//ÒôÆµÂ·¾¶
+wstring Audio_ckjmy = L"audio/³é¿¨½çÃæÒô.mp3";
+wstring Audio_cky = L"audio/³é¿¨Òô.mp3";
+wstring Audio_c3x = L"audio/³ö3ĞÇÒôĞ§.mp3";
+wstring Audio_c5x = L"audio/³ö5ĞÇÒôĞ§.mp3.mp3";
+
+//ÆäËûÂ·¾¶
+wstring ckmb_lj = L"assets/data.txt";			//Êı¾İ
+wstring ckdh_temp_lj = L"gacha-anim/ckdh1.png";	//ÁÙÊ±Â·¾¶
+wstring temp_text_path = L"temp/logs/temp.txt";	//ÁÙÊ±ÎÄ±¾
+
+//ÒôÆµÉè±¸
+wstring mysong =  L"mysong";
+
 
 //ÆäËûÊı¾İ
 int sl = 1;
 int ck_c = 1720;
 int ck_k = 930;
 int zl = 15;									//Ö¡ÂÊ£¨È«ÆÁÄ£Ê½Ê±£¬Ö»ĞèÑÓ³ÙÒ»Ãë£¬ÕâÀïÍ¼Æ¬ÕÅÊıËÆºõÓĞÎÊÌâ£©
-string ckmb[255];
+wstring ckmb[255];
 int ckmb_sl = 0;								//³é¿¨Ä¿±êÊıÁ¿
 
 int zt_x = 520;									//×ÖÌå´òÓ¡Î»ÖÃµÄ×ø±ê
@@ -54,14 +66,20 @@ int zt_kd = 0;									//Ã¿¸ö×Ö·ûµÄ¿í¶È
 int sl_cqcs = 4;								//Ê®Á¬³éµÄ³éÈ¡´ÎÊı
 IMAGE wzbj;										//ÎÄ×ÖµÄ±³¾°Í¼
 
+namespace fs = std::filesystem;			//½«fsÉèÖÃÎªÃüÃû¿Õ¼äfilesystem
+string lssj_ml = "temp/logs";			//ÁÙÊ±Êı¾İÄ¿Â¼
+
 int main()
 {
+	//ÔÚµ±Ç°Ä¿Â¼ÏÂ£¬´´½¨Ò»¸öÁÙÊ±Êı¾İÄ¿Â¼£¬Èç¹ûÄ¿Â¼´æÔÚ»á×Ô¶¯Ìø¹ı
+	fs::create_directories(lssj_ml);
+
 	cout << "¹Ø±Õ¸Ã´°¿ÚÒÔÍ£Ö¹³ÌĞòÔËĞĞ" << endl;
 	//cout << "\"ÆíÔ¸10´Î\"µÄ³éÈ¡´ÎÊı£º" << endl;
 	//cin >> sl_cqcs;
 
 	//²¥·Å³é¿¨½çÃæÒô
-	bf_ckjmy();
+	Play_audio(Audio_ckjmy, mysong);
 
 	initgraph(ck_c, ck_k, 1);						//´´½¨´°¿Ú
 
@@ -101,17 +119,17 @@ int main()
 				}
 				else if (xx.x >= 1362 && xx.x <= 1668 && xx.y >= 835 && xx.y <= 902)	//Èç¹ûÎªÊ®Á¬
 				{
-					mciSendString(TEXT("close mysong"), NULL, 0, NULL);					//¹Ø±ÕÒôÆµ
+					Turn_off_audio(mysong);				//¹Ø±ÕÒôÆµ
 
 					temp_sl = sl;						//¼ÇÂ¼Ò»ÏÂµ±Ç°ÊıÁ¿
 					sl = 1;
 					bf_ckdh();							//²¥·Å³é¿¨¶¯»­
 
-					mciSendString(TEXT("close mysong"), NULL, 0, NULL);					//¹Ø±ÕÒôÆµ
+					Turn_off_audio(mysong);				//¹Ø±ÕÒôÆµ
 
 					if (ckmb_sl == 0)
 					{
-						Sleep(1000);						//ÓÉÓÚÄ¿Ç°Ã»ÓĞ³é¿¨ºóµÄ½á¹ûËØ²Ä£¬ËùÒÔ²¥·ÅÍê³é¿¨ºóÑÓÊ±1Ãë
+						Sleep(1000);					//ÓÉÓÚÄ¿Ç°Ã»ÓĞ³é¿¨ºóµÄ½á¹ûËØ²Ä£¬ËùÒÔ²¥·ÅÍê³é¿¨ºóÑÓÊ±1Ãë
 					}
 					else
 					{
@@ -125,7 +143,7 @@ int main()
 					sl = 2;
 				
 					//²¥·Å³é¿¨½çÃæÒô
-					bf_ckjmy();
+					Play_audio(Audio_ckjmy, mysong);
 				}
 			}
 		}
@@ -166,7 +184,7 @@ void bf_ckdh()								//³é¿¨¶¯»­
 		if (i == 2)
 		{
 			//²¥·Å³é¿¨Òô
-			bf_cky();
+			Play_audio(Audio_cky, mysong);
 		}
 		//*/
 
@@ -199,10 +217,10 @@ void bf_ckdh()								//³é¿¨¶¯»­
 	ckdh_lj = ckdh_temp_lj;
 	sl = 1;
 }
-void gxlj2(string& lj, int& num)						//²ÎÊı£ºÂ·¾¶£¬µ±Ç°±àºÅ
+void gxlj2(wstring& lj, int& num)						//²ÎÊı£ºÂ·¾¶£¬µ±Ç°±àºÅ
 {
-	string temp;
-	int wz = lj.rfind(".");							//»ñÈ¡Â·¾¶ÖĞ£¬×îºóÒ»¸öµãµÄÎ»ÖÃ
+	wstring temp;
+	int wz = lj.rfind(L".");							//»ñÈ¡Â·¾¶ÖĞ£¬×îºóÒ»¸öµãµÄÎ»ÖÃ
 	num++;
 
 	/*/
@@ -230,7 +248,7 @@ void gxlj2(string& lj, int& num)						//²ÎÊı£ºÂ·¾¶£¬µ±Ç°±àºÅ
 		sl = 3;
 	}
 }
-int zfzsz(string& str, int len)			//×Ö·û×ªÊı×Ö£¨ÓÉÓÚÊı×é´«½øº¯Êıºó£¬³¤¶È¹Ì¶¨Îª8£¬ÎŞ·¨¿¿str.size()ÔÚº¯ÊıÀï»ñÈ¡³¤¶È£¬ËùÒÔ³¤¶ÈĞèÒª´«½øÀ´£©
+int zfzsz(wstring& str, int len)			//×Ö·û×ªÊı×Ö£¨ÓÉÓÚÊı×é´«½øº¯Êıºó£¬³¤¶È¹Ì¶¨Îª8£¬ÎŞ·¨¿¿str.size()ÔÚº¯ÊıÀï»ñÈ¡³¤¶È£¬ËùÒÔ³¤¶ÈĞèÒª´«½øÀ´£©
 {
 	int s = 0;
 	int sz[255];
@@ -249,22 +267,22 @@ int zfzsz(string& str, int len)			//×Ö·û×ªÊı×Ö£¨ÓÉÓÚÊı×é´«½øº¯Êıºó£¬³¤¶È¹Ì¶¨Îª8£
 
 	return s;
 }
-string szzzf(int num)
+wstring szzzf(int num)
 {
-	string sz;
-	fstream fs;
+	wstring sz;
+	wfstream fs;
 
-	fs.open("text.txt", ios::out);
+	fs.open(temp_text_path, ios::out);
 	fs << num << endl;					//½«Êı×Ö´«µ½ÎÄ¼şÖĞ
 	fs.close();
 
-	fs.open("text.txt", ios::in);
+	fs.open(temp_text_path, ios::in);
 	getline(fs, sz);					//ÔÙ½«ÎÄ¼şÖĞµÄÄÚÈİ¶Á»Ø×Ö·û´®ÖĞ
 	fs.close();
 
 	return sz;
 }
-bool pdlj(string& lj)							//ÅĞ¶ÏÎÄ¼ş£¨Â·¾¶£©ÊÇ·ñ¿ÉÒÔ´ò¿ª
+bool pdlj(wstring& lj)							//ÅĞ¶ÏÎÄ¼ş£¨Â·¾¶£©ÊÇ·ñ¿ÉÒÔ´ò¿ª
 {
 	ifstream ifs;
 	ifs.open(lj, ios::in | ios::binary);
@@ -284,6 +302,8 @@ void csh_ckmb()								//³õÊ¼»¯³é¿¨Ä¿±ê
 	ckmb_sl = 0;
 
 	ifstream ifs;
+	string line_utf8;
+		
 	ifs.open(ckmb_lj, ios::in);				//¶ÁÈ¡¸ÃÎÄ¼ş
 	if (!ifs.is_open())						//Èç¹ûÃ»ÓĞ¸ÃÎÄ¼ş
 	{
@@ -294,132 +314,24 @@ void csh_ckmb()								//³õÊ¼»¯³é¿¨Ä¿±ê
 		ckmb_sl = 0;						//²¢¼ÇÂ¼³é¿¨Ä¿±êÊıÁ¿Îª0£¬È»ºó·µ»Ø
 		return;
 	}
+
+	//¶ÁÈ¡³é¿¨Ä¿±ê
 	for (int i = 0;i < 255;i++)				//½«ÎÄ¼şÖĞµÄĞÅÏ¢£¬´«Èë³é¿¨Ä¿±êÊı×éÖĞ
 	{
-		if (!getline(ifs, ckmb[i]))			//Èç¹ûÃ»ÓĞÄÚÈİÁË
+		if (getline(ifs, line_utf8))
+		{
+			// ½« UTF-8 µÄ string ×ª»»Îª wstring
+			wstring line_wide = utf8_to_wstring(line_utf8);
+			ckmb[i] = line_wide;
+			ckmb_sl++;						//³é¿¨Ä¿±êÊıÁ¿++			
+		}
+		else								//Èç¹ûÃ»ÓĞÄÚÈİÁË
 		{
 			break;							//ÍË³öÑ­»·
 		}
-		ckmb_sl++;							//³é¿¨Ä¿±êÊıÁ¿++
+		
 	}
 	ifs.close();
-}
-int sc_sjs(int zsl)						//²ÎÊı£º×ÜÊıÁ¿£¬·µ»ØÖµ£ºËæ»ú½á¹û£¨ÊıÖµ´Ó0¿ªÊ¼£¬Èç¹ûĞèÒªÊıÖµ´ÓÄ³Öµ¿ªÊ¼£¬¿ÉÒÔÔÚ·µ»Ø½á¹ûÉÏ¼ÓÉÏ¸ÃÊıÖµ£©
-{
-										//Ê¹ÓÃÌõ¼şËµÃ÷£º³ıÁË×î¸ßÎ»£¬ÆäËûÎ»ÊıÊıÖµ·¶Î§¶¼±ØĞëÊÇ9
-										//Èç£º10£¬µ±Ê®Î»ÊıÎª0Ê±£¨50%¸ÅÂÊ£©£¬ÓĞ10ÖÖ¿ÉÄÜ£¨0~9£©£¬Ã¿Ò»ÖÖ¿ÉÄÜµÄ¸ÅÂÊ¶¼Îª50%¡Â10=5%
-										//¶øÊ®Î»ÊıÎª1Ê±£¨50%¸ÅÂÊ£©£¬Ö»ÓĞ1ÖÖ¿ÉÄÜ£¨10£©£¬10µÄ¸ÅÂÊÊÇ50¡Â1=50%£¬¸ÅÂÊ²»Æ½¾ù
-										//½áÂÛ£ºµ±Ê®Î»ÊıÎª1£¬Ö»ÓĞÔÚ19µÄÊ±ºò£¬¸ÅÂÊÆ½¾ù
-										//Èç£º109£¬µ±°ÙÎ»ÊıÎª0£¨50%¸ÅÂÊ£©£¬ÓĞ100ÖÖ¿ÉÄÜ£¨0~99£©£¬Ã¿Ò»ÖÖ¿ÉÄÜµÄ¸ÅÂÊ¶¼Îª50%¡Â100=0.5%
-										//¶ø°ÙÎ»ÊıÎª1Ê±£¨50%¸ÅÂÊ£©£¬Ö»ÓĞ10ÖÖ¿ÉÄÜ£¨100~109£©£¬Ã¿Ò»ÖÖ¿ÉÄÜµÄ¸ÅÂÊÊÇ50¡Â10=5%£¬¸ÅÂÊ²»Æ½¾ù
-										//½áÂÛ£ºµ±°ÙÎ»ÊıÎª1£¬Ö»ÓĞÔÚ199µÄÊ±£¬¸ÅÂÊÆ½¾ù
-										//×Ü½áÂÛ£º³ıÁË×î¸ßÎ»£¬ÆäËûÎ»Êı¶¼±ØĞëÊÇ9£¬Èç£º19¡¢29¡¢99¡¢199¡¢299¡¢999¡¢1999¡¢2999£¨109ºÍ1099¶¼²»ĞĞ£©
-
-	int s = 0;							//Êı
-
-	int ws1 = 0;						//µÚÒ»Î»Êı
-	int ws2 = 0;						//µÚÒ»Î»ÊıµÄ·¶Î§
-	int ws3 = 0;
-	int ws4 = 0;
-	int ws_fw1 = 0;						//µÚÒ»Î»ÊıµÄ·¶Î§
-	int ws_fw2 = 0;
-	int ws_fw3 = 0;
-	int ws_fw4 = 0;
-
-	//srand((unsigned int)time(NULL));	//ÕâÌõËæ»úÊıÖÖ×Ó²»ÄÜ·ÅÔÚº¯ÊıÄÚ£¬±ØĞëÉèÖÃÔÚmainº¯ÊıÖĞ
-	if (zsl < 10)						//Èç¹û×ÜÊıÁ¿ÎªÒ»Î»Êı
-	{
-		if (zsl <= 0)					//Èç¹û´«ÈëµÄ×ÜÊıÁ¿Ğ¡ÓÚ»òµÈÓÚ0
-		{
-			return 0;					//·µ»Ø0
-		}
-		return rand() % zsl;
-	}
-	else if (zsl < 100)					//Èç¹û×ÜÊıÁ¿²»Ğ¡ÓÚ10£¬ÇÒĞ¡ÓÚ100£¨Á½Î»Êı£©
-	{
-		ws_fw1 = zsl / 10;				//»ñÈ¡Ê®Î»ÊıµÄ×î´óÊı£¨·¶Î§£©
-		ws1 = rand() % ws_fw1 + 1;
-		if (ws1 == ws_fw1)				//Èç¹ûÎ»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§Êı
-		{
-			ws_fw2 = zsl % 10;
-			ws2 = rand() % (ws_fw2 + 1);
-		}
-		else
-		{
-			ws2 = rand() % 10;
-		}
-		s = ws1 * 10 + ws2;
-	}
-	else if (zsl < 1000)
-	{
-		ws_fw1 = zsl / 100;				//»ñÈ¡°ÙÎ»ÊıµÄ×î´óÊı£¨·¶Î§£©
-		ws1 = rand() % ws_fw1 + 1;
-
-		if (ws1 == ws_fw1)				//Èç¹û°ÙÎ»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§Êı
-		{
-			ws_fw2 = zsl / 10 % 10;
-			ws2 = rand() % (ws_fw2 + 1);
-		}
-		else
-		{
-			ws2 = rand() % 10;
-		}
-
-		if (ws1 == ws_fw1 && ws2 == ws_fw2)				//Èç¹û°ÙÎ»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§Êı
-		{
-			ws_fw3 = zsl % 10;
-			ws3 = rand() % (ws_fw3 + 1);
-		}
-		else
-		{
-			ws3 = rand() % 10;
-		}
-		s = ((ws1 * 10) + ws2) * 10 + ws3;
-	}
-	else if (zsl < 10000)
-	{
-		ws_fw1 = zsl / 1000;				//»ñÈ¡Ç§Î»ÊıµÄ×î´óÊı£¨·¶Î§£©
-		ws1 = rand() % ws_fw1 + 1;
-
-		if (ws1 == ws_fw1)					//Èç¹ûÇ§Î»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§Êı
-		{
-			ws_fw2 = zsl / 100 % 10;
-			ws2 = rand() % (ws_fw2 + 1);
-		}
-		else
-		{
-			ws2 = rand() % 10;
-		}
-
-		if (ws1 == ws_fw1 && ws2 == ws_fw2)			//Èç¹ûÇ§Î»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§Êı£¬ÇÒ°ÙÎ»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§
-		{
-			ws_fw3 = zsl / 10 % 10;
-			ws3 = rand() % (ws_fw3 + 1);
-		}
-		else
-		{
-			ws3 = rand() % 10;
-		}
-
-		if (ws1 == ws_fw1 && ws2 == ws_fw2 && ws3 == ws_fw3)//Èç¹ûÇ§Î»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§Êı£¬ÇÒ°ÙÎ»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§£¬ÇÒÊ®Î»ÊıµÄÊıÖµ£¬µÈÓÚ×î´ó·¶Î§
-		{
-			ws_fw4 = zsl % 10;
-			ws4 = rand() % (ws_fw4 + 1);
-		}
-		else
-		{
-			ws4 = rand() % 10;
-		}
-
-		s = (((ws1 * 10) + ws2) * 10 + ws3) * 10 + ws4;
-	}
-
-	if (s == zsl)			//Èç¹û×îºóËæ»úµÄ½á¹ûÎªÊıµÄ×î´óÖµ£¬±ØĞë-1£¨ÒòÎª£¬Èç¹û×î´óÖµÎª10£¬ÔòÓ¦¸ÃÖ»ÓĞ0~9µÄ·¶Î§£¬²»ÄÜÊÇ10£©
-	{
-		s - 1;
-	}
-
-	return s;
 }
 void scjg(int jg_s)							//Éú³É½á¹û£¬²ÎÊı£º½á¹ûµÄÊıÁ¿
 {
@@ -437,7 +349,7 @@ void scjg(int jg_s)							//Éú³É½á¹û£¬²ÎÊı£º½á¹ûµÄÊıÁ¿
 	{
 		djs = 0;							//Ë¢ĞÂµ¹¼ÆÊ±
 		pd = false;
-		sjs = sc_sjs(ckmb_sl);				//Éú³ÉÒ»¸öËæ»úÊı
+		sjs = GetRandomNumber(0, ckmb_sl - 1);	//Éú³ÉÒ»¸öËæ»úÊı£¬Éú³É·¶Î§£º0~³é¿¨Ä¿±êÊıÁ¿-1£¨0~3£©
 
 		zfs = ckmb[sjs].size();
 		if (zfs >= 3 && zfs <= 4)			//Èç¹û×Ö·ûÊıÎª3~4¸ö×Ö·û£¨2¸öÖĞÎÄºº×Ö£©
@@ -454,7 +366,7 @@ void scjg(int jg_s)							//Éú³É½á¹û£¬²ÎÊı£º½á¹ûµÄÊıÁ¿
 		}
 
 		//²¥·Å³ö3ĞÇÒô
-		bf_csxy();		
+		Play_audio(Audio_c3x, mysong);
 
 		cleardevice();						//ÇåÆÁ
 		putimage(0, 0, &wzbj);				//´òÓ¡ÎÄ×Ö±³¾°
@@ -471,7 +383,7 @@ void scjg(int jg_s)							//Éú³É½á¹û£¬²ÎÊı£º½á¹ûµÄÊıÁ¿
 			{
 				if (xx.message == 0x202)		//Èç¹ûÎª×ó¼üµ¯ÆğÏûÏ¢
 				{
-					mciSendString(TEXT("close mysong"), NULL, 0, NULL);				//¹Ø±ÕÒôÆµ
+					Turn_off_audio(mysong);				//¹Ø±ÕÒôÆµ
 
 					break;						//ÔòÍË³ö£¬´òÓ¡ÏÂÒ»¸ö×Ö·û´®
 				}
@@ -482,7 +394,7 @@ void scjg(int jg_s)							//Éú³É½á¹û£¬²ÎÊı£º½á¹ûµÄÊıÁ¿
 				djs += dc_pdsj;
 				if (djs >= 2000 - ys_sj && pd == false)
 				{
-					//mciSendString(TEXT("close mysong"), NULL, 0, NULL);			//¹Ø±ÕÒôÆµ£¨ÒÑÈ¡ÏûÒôÆµÑ­»·£¬²»ĞèÒªÔÙÓÃ¼ÆÊ±·½Ê½¹Ø±Õ£©
+					//Turn_off_audio(mysong);				//¹Ø±ÕÒôÆµÒÑÈ¡ÏûÒôÆµÑ­»·£¬²»ĞèÒªÔÙÓÃ¼ÆÊ±·½Ê½¹Ø±Õ£©
 					pd = true;
 				}
 			}
@@ -496,7 +408,7 @@ void scjg(int jg_s)							//Éú³É½á¹û£¬²ÎÊı£º½á¹ûµÄÊıÁ¿
 				{
 					if (pd == false)
 					{
-						mciSendString(TEXT("close mysong"), NULL, 0, NULL);					//¹Ø±ÕÒôÆµ
+						Turn_off_audio(mysong);				//¹Ø±ÕÒôÆµ
 					}
 					break;						//ÔòÍË³ö£¬´òÓ¡ÏÂÒ»¸ö×Ö·û´®
 				}
@@ -507,7 +419,7 @@ void scjg(int jg_s)							//Éú³É½á¹û£¬²ÎÊı£º½á¹ûµÄÊıÁ¿
 				djs += dc_pdsj;
 				if (djs >= 2000 - ys_sj && pd == false)
 				{
-					mciSendString(TEXT("close mysong"), NULL, 0, NULL);					//¹Ø±ÕÒôÆµ
+					Turn_off_audio(mysong);				//¹Ø±ÕÒôÆµ
 					pd = true;
 				}
 			}
@@ -526,30 +438,116 @@ void szztys()						//ÉèÖÃ×ÖÌåÑùÊ½
 	zt.lfFaceName[0] = '1';
 	//settextstyle(&zt);
 
-	settextstyle(zt_gd, zt_kd, "1", 0, 0, 0, false, false, false);
+	settextstyle(zt_gd, zt_kd, L"1", 0, 0, 0, false, false, false);
 }
 
-void bf_ckjmy()								//²¥·Å³é¿¨½çÃæÒô
+int GetRandomNumber(int min, int max)		//²ÎÊı£º×îĞ¡Öµ, ×î´óÖµ
 {
-	//²¥·ÅÒôÆµ
-	mciSendString(TEXT("open audio//³é¿¨½çÃæÒô.mp3 alias mysong"), NULL, 0, NULL);
-	mciSendString(TEXT("play mysong"), NULL, 0, NULL);
+	/*/
+	// 1. ¾²Ì¬Éè±¸£ºÖ»¹¹ÔìÒ»´Î£¬ÓÃÓÚ»ñÈ¡ÏµÍ³ÕæËæ»úÖÖ×Ó
+	static std::random_device rd;
+	// 2. ¾²Ì¬ÒıÇæ£ºÖ»³õÊ¼»¯Ò»´Î£¬Ö®ºó×´Ì¬³ÖĞøÏòÇ°ÍÆ½ø
+	static std::mt19937 gen(rd());
+	// 3. ¾²Ì¬·Ö²¼£ºÖ»¶¨ÒåÒ»´Î£¬·¶Î§ 1~10000
+	static std::uniform_int_distribution<int> dist(1, 10000);
+	//*/
+
+	// 1. ÒıÇæ£¨º¬ÖÖ×Ó£©£ºÕû¸ö³ÌĞòÖ»²¥ÖÖÒ»´Î£¬²¢ÇÒ²»³¤ÆÚÕ¼ÓÃ random_device ×ÊÔ´
+	static std::mt19937 gen(std::random_device{}());
+
+	// 2. ·Ö²¼¹æÔò£º²»ÓÃ static£¬Ã¿´Î¸ù¾İ´«ÈëµÄ²ÎÊı¶¯Ì¬´´½¨£¨¼«ÇáÁ¿£¬ÎŞĞÔÄÜ¸ºµ££©
+	std::uniform_int_distribution<int> dist(min, max);
+
+	// Ã¿´Îµ÷ÓÃÖ»Ö´ĞĞÕâÒ»¾ä£¬·µ»Ø²»Í¬µÄÊı
+	return dist(gen);
 }
-void bf_cky()								//²¥·Å³é¿¨Òô
+bool jc_wjsfcz()
 {
-	//²¥·ÅÒôÆµ
-	mciSendString(TEXT("open audio//³é¿¨Òô.mp3 alias mysong"), NULL, 0, NULL);
-	mciSendString(TEXT("play mysong"), NULL, 0, NULL);
+	ifstream ifs;
+	bool sf_czwj = true;		//ÊÇ·ñ_´æÔÚÎÄ¼ş
+
+	//1.³é¿¨¶¯»­_Í¼Æ¬
+	ifs.open(ckdh_lj, ios::in);
+	if (!ifs.is_open())
+	{
+		wcout << "È±ÉÙÎÄ¼ş£º" << ckdh_lj << endl;
+		sf_czwj = false;
+	}
+
+	//2.½çÃæ¶¯»­_Í¼Æ¬
+	ifs.close();
+	ifs.open(jmdh_lj, ios::in);
+	if (!ifs.is_open())
+	{
+		wcout << "È±ÉÙÎÄ¼ş£º" << jmdh_lj << endl;
+		sf_czwj = false;
+	}
+
+	//3.³é¿¨Ä¿±ê_Êı¾İ
+	ifs.close();
+	ifs.open(ckmb_lj, ios::in);
+	if (!ifs.is_open())
+	{
+		wcout << "È±ÉÙÎÄ¼ş£º" << ckmb_lj << endl;
+		sf_czwj = false;
+	}
+
+	//4.ÎÄ×Ö±³¾°_Í¼Æ¬
+	ifs.close();
+	ifs.open(wzbj_lj, ios::in);
+	if (!ifs.is_open())
+	{
+		wcout << "È±ÉÙÎÄ¼ş£º" << wzbj_lj << endl;
+		sf_czwj = false;
+	}
+
+	//5.ÒôÆµ×ÊÔ´_ÒôÆµ
+	ifs.close();
+	ifs.open(Audio_ckjmy, ios::in);
+	if (!ifs.is_open())
+	{
+		wcout << "È±ÉÙÎÄ¼ş£º" << Audio_ckjmy << endl;
+		sf_czwj = false;
+	}
+
+	//Èç¹û²»´æÔÚÎÄ¼ş£¬Ôò·µ»Øfalse
+	if (sf_czwj == false)
+	{
+		return false;
+	}
+
+	ifs.close();
+	return true;					//´æÔÚÎÄ¼ş£¬·µ»Øtrue
 }
-void bf_csxy()								//²¥·Å³öÈıĞÇÒô
+wstring utf8_to_wstring(const std::string& str)
 {
-	//²¥·ÅÒôÆµ
-	mciSendString(TEXT("open audio//³ö3ĞÇÒôĞ§.mp3 alias mysong"), NULL, 0, NULL);
-	mciSendString(TEXT("play mysong"), NULL, 0, NULL);
+	if (str.empty()) return std::wstring();
+	// 1. ¼ÆËã×ª»»ºóĞèÒªµÄ¿í×Ö·û»º³åÇø´óĞ¡
+	int wsize = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
+	if (wsize <= 0) return std::wstring();
+	// 2. ½øĞĞ×ª»»
+	std::wstring wstr(wsize - 1, 0); // -1 ÊÇÒòÎª MultiByteToWideChar ·µ»ØµÄ´óĞ¡°üº¬ L'\0'
+	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &wstr[0], wsize);
+	return wstr;
 }
-void bf_cwxy()								//²¥·Å³öÎåĞÇÒô
+
+void Play_audio(const wstring& file_path, const wstring& alias)
 {
-	//²¥·ÅÒôÆµ
-	mciSendString(TEXT("open audio//³ö5ĞÇÒôĞ§.mp3 alias mysong"), NULL, 0, NULL);
-	mciSendString(TEXT("play mysong"), NULL, 0, NULL);
+    wstring close_cmd = L"close " + alias;
+	wstring open_cmd = L"open " + file_path + L" alias " + alias;
+	wstring play_cmd = L"play " + alias;
+
+	// 1.¹Ø±Õ¾ÉÒôÆµ
+    mciSendString(close_cmd.c_str(), NULL, 0, NULL);
+
+    // 2.´ò¿ªÒôÆµ
+    mciSendString(open_cmd.c_str(), NULL, 0, NULL);
+
+    // 3.²¥·ÅÒôÆµ
+    mciSendString(play_cmd.c_str(), NULL, 0, NULL);
+}
+void Turn_off_audio(const wstring& alias)
+{
+	std::wstring close_cmd = L"close " + alias;
+	mciSendString(close_cmd.c_str(), NULL, 0, NULL);
 }
